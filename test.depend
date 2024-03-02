@@ -1,0 +1,15 @@
+# depslib dependency file v1.0
+1709007504 source:c:\users\hp victus\desktop\coding\test\test.cpp
+	<iostream>
+	<SDL.h>
+
+1709018819 source:c:\users\hp victus\desktop\coding\test\sdlstarting.cpp
+	<iostream>
+	<SDL.h>
+
+1709303838 source:c:\users\hp victus\desktop\coding\test\firstsdlproject.cpp
+	<iostream>
+	<SDL.h>
+	<SDL_image.h>
+	<string>
+
