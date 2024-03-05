@@ -1,6 +1,6 @@
 #include <iostream>
-#include "C:/SDL2-2.30.0/x86_64-w64-mingw32/include/SDL2/SDL.h"
-#include "C:/SDL2_image-2.8.2/x86_64-w64-mingw32/include/SDL2/SDL_image.h"
+#include <SDL.h>
+#include <SDL_image.h>
 #include <string>
 
 #undef main
@@ -11,8 +11,8 @@ using std::endl;
 using std::string;
 using std::ostream;
 
-const int SCREEN_WIDTH = 1280;
-const int SCREEN_HEIGHT = 720;
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 600;
 const string TITLE = "SDL Tuorial";
 
 //enum KeyPressSurfaces
@@ -32,17 +32,8 @@ bool loadMedia();
 //Frees media and shuts down SDL
 void close();
 
-//Loads individual image
-SDL_Surface* loadSurface(string path);
-
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
-
-//The surface contained by the window
-SDL_Surface* gScreenSurface = NULL;
-
-//Current display image
-SDL_Surface* gStretchedSurface = NULL;
 
 //The window renderer
 SDL_Renderer* gRenderer;
@@ -59,33 +50,41 @@ int main()
         cout << "Failed to initialize!!!" << endl;
     }
     else {
-        //Load media
         if (!loadMedia()){
-            cout << "Failed to load media!!!" << endl;
+            cout << "Failed to load media!" << endl;
         }
         else {
             bool quit = false;
 
-            //Event handler
             SDL_Event e;
 
-            //While application is running
-            while (!quit){
-                while (SDL_PollEvent(&e) != 0){
+            while(!quit){
+                while (SDL_PollEvent (&e) != 0){
                     if (e.type == SDL_QUIT){
                         quit = true;
                     }
                 }
-                //Apply the current image
-                SDL_Rect stretchRect;
-                stretchRect.x = 0;
-                stretchRect.y = 0;
-                stretchRect.w = SCREEN_WIDTH;
-                stretchRect.h = SCREEN_HEIGHT;
-                SDL_BlitScaled (gStretchedSurface, NULL, gScreenSurface, &stretchRect);
+                SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
+                SDL_RenderClear(gRenderer);
 
-                //Update the surface
-                SDL_UpdateWindowSurface (gWindow);
+                //Render red filled quad
+                SDL_Rect fillRect = {SCREEN_WIDTH / 4, SCREEN_HEIGHT / 4, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2};
+                SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0x00, 0xFF);
+                SDL_RenderFillRect(gRenderer, &fillRect);
+
+                SDL_Rect outlineRect = {SCREEN_WIDTH / 6, SCREEN_HEIGHT / 6, SCREEN_WIDTH * 2 / 3, SCREEN_HEIGHT * 2 / 3};
+                SDL_SetRenderDrawColor(gRenderer, 0x00, 0xFF, 0x00, 0xFF);
+                SDL_RenderDrawRect(gRenderer, &outlineRect);
+
+                SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0xFF, 0xFF);
+                SDL_RenderDrawLine(gRenderer, 0, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2);
+
+                SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0x00, 0xFF);
+                for (int i = 0; i < SCREEN_HEIGHT; i += 8){
+                    SDL_RenderDrawLine(gRenderer, SCREEN_WIDTH / 2, i, SCREEN_WIDTH / 2, i + 4);
+                }
+
+                SDL_RenderPresent(gRenderer);
             }
         }
     }
@@ -109,24 +108,20 @@ bool init()
             success = false;
         }
         else {
-            //Create renderer for window
-            SDL_GetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+            gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
             if (gRenderer == NULL){
-                cout << "Renderer color could not be created! SDL error: " << SDL_GetError() << endl;
+                cout << "Renderer could not be created! SDL error: " << SDL_GetError() << endl;
                 success = false;
             }
             else {
-                //Initialize render color
-                SDL_SetRenderDrawColor()
+                SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 255);
 
-                //Initialize PNG loading
                 int imgFlags = IMG_INIT_PNG;
-                if (!(IMG_Init(imgFlags) & imgFlags)){
-                    cout << "SDL_image could not initialize! SDL error: " << IMG_GetError() << "\n";
+                if (!( IMG_Init( imgFlags ) & imgFlags)) {
+                    cout << "SDL_image could not initialize! SDL error: " << SDL_GetError() << endl;
                     success = false;
                 }
             }
-            //gScreenSurface = SDL_GetWindowSurface(gWindow);
         }
     }
     return success;
@@ -136,11 +131,11 @@ bool loadMedia()
 {
     bool success = true;
 
-    gStretchedSurface = loadSurface("stretch.bmp");
-    if (gStretchedSurface == NULL){
-        cout << "Failed to load stretch image! SDL error: " << SDL_GetError() << endl;
-        success = false;
-    }
+//    gTexture = loadTexture("texture.png");
+//    if (gTexture == NULL){
+//        cout << "Failed to load texture image! SDL error: " << SDL_GetError() << endl;
+//        success = false;
+//    }
 
     return success;
 }
@@ -148,36 +143,40 @@ bool loadMedia()
 void close()
 {
     //Deallocate surface
-    SDL_FreeSurface(gStretchedSurface);
-    gStretchedSurface = NULL;
+    SDL_DestroyTexture(gTexture);
+    gTexture = NULL;
 
     //Destroy window
     SDL_DestroyWindow (gWindow);
     gWindow = NULL;
 
+    SDL_DestroyRenderer(gRenderer);
+    gRenderer = NULL;
+
     //Quit SDL subsystem
+    IMG_Quit();
     SDL_Quit();
 }
 
-SDL_Surface* loadSurface(string path)
-{
-    //The final optimized image
-    SDL_Surface* optimizedSurface = NULL;
-
-    //Load image at specific path
-    SDL_Surface* loadedSurface = SDL_LoadBMP(path.c_str());
-    if (loadSurface == NULL){
-        cout << "Unable to load image!!! SDL Error: " << SDL_GetError() << endl;
-    }
-    else {
-        optimizedSurface = SDL_ConvertSurface(loadedSurface, gScreenSurface->format, 0);
-        if (optimizedSurface == NULL){
-            cout << "Unable to optimized image! SDL error: " << SDL_GetError() << endl;
-        }
-        SDL_FreeSurface(loadedSurface);
-    }
-    return optimizedSurface;
-}
+//SDL_Surface* loadSurface(string path)
+//{
+//    //The final optimized image
+//    SDL_Surface* optimizedSurface = NULL;
+//
+//    //Load image at specific path
+//    SDL_Surface* loadedSurface = SDL_LoadBMP(path.c_str());
+//    if (loadSurface == NULL){
+//        cout << "Unable to load image!!! SDL Error: " << SDL_GetError() << endl;
+//    }
+//    else {
+//        optimizedSurface = SDL_ConvertSurface(loadedSurface, gScreenSurface->format, 0);
+//        if (optimizedSurface == NULL){
+//            cout << "Unable to optimized image! SDL error: " << SDL_GetError() << endl;
+//        }
+//        SDL_FreeSurface(loadedSurface);
+//    }
+//    return optimizedSurface;
+//}
 
 SDL_Texture* loadTexture(string path)
 {
@@ -185,5 +184,16 @@ SDL_Texture* loadTexture(string path)
     SDL_Texture* newTexture = NULL;
 
     //Load image at specific path
-
+    SDL_Surface* loadSurface = IMG_Load(path.c_str());
+    if (loadSurface == NULL){
+        printf("Unable to load image %s! SDL_image error: %s\n", path.c_str(), IMG_GetError());
+    }
+    else {
+        newTexture = SDL_CreateTextureFromSurface(gRenderer, loadSurface);
+        if (newTexture == NULL){
+            printf("Unable to create texture from %s! SDL error %s\n", path.c_str(), SDL_GetError());
+        }
+        SDL_FreeSurface(loadSurface);
+    }
+    return newTexture;
 }
